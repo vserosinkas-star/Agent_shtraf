@@ -4,395 +4,148 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Агент контроля штрафов | AI System</title>
-  
-  <!-- Шрифты и иконки -->
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Библиотека для работы с Excel -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
-  
   <style>
-    :root {
-      --bg-dark: #050507;
-      --bg-card: rgba(20, 20, 35, 0.6);
-      --border: rgba(255, 255, 255, 0.08);
-      --primary: #6366f1;
-      --primary-glow: rgba(99, 102, 241, 0.4);
-      --accent: #06b6d4;
-      --text: #f1f5f9;
-      --text-dim: #94a3b8;
-      --danger: #ef4444;
-      --success: #10b981;
-    }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: 'Manrope', sans-serif;
-      background: var(--bg-dark);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-      padding-bottom: 2rem;
-    }
-
-    /* Анимированный фон */
-    .bg-glow {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
-      background: 
-        radial-gradient(circle at 15% 50%, rgba(99,102,241,0.15) 0%, transparent 50%),
-        radial-gradient(circle at 85% 30%, rgba(6,182,212,0.1) 0%, transparent 50%);
-      animation: pulse 10s infinite alternate;
-    }
-    @keyframes pulse { 0%{opacity:0.8} 100%{opacity:1} }
-
-    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
-
-    /* Header */
-    header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 2.5rem; padding: 1.5rem 2rem;
-      background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;
-      backdrop-filter: blur(15px);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-    }
-    .brand { display: flex; align-items: center; gap: 1rem; }
-    .logo { 
-      width: 50px; height: 50px; object-fit: contain; 
-      filter: drop-shadow(0 0 8px var(--primary));
-    }
-    h1 { font-size: 1.5rem; font-weight: 700; background: linear-gradient(to right, #fff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-    /* Навигация */
-    .tabs { display: flex; gap: 0.5rem; background: rgba(0,0,0,0.3); padding: 0.4rem; border-radius: 14px; border: 1px solid var(--border); }
-    .tab-btn {
-      padding: 0.6rem 1.2rem; border-radius: 10px; border: none; background: transparent;
-      color: var(--text-dim); font-weight: 500; cursor: pointer; transition: 0.3s;
-      display: flex; align-items: center; gap: 0.5rem;
-    }
-    .tab-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
-    .tab-btn.active { background: var(--primary); color: #fff; box-shadow: 0 0 15px var(--primary-glow); }
-
-    /* Карточки */
-    .card {
-      background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
-      padding: 1.5rem; margin-bottom: 1.5rem; backdrop-filter: blur(10px);
-      transition: transform 0.3s;
-    }
-    .card:hover { transform: translateY(-2px); border-color: rgba(99,102,241,0.3); }
-    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.8rem; }
-    .card-title { font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
-
-    /* Формы */
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
-    .input-group { display: flex; flex-direction: column; gap: 0.4rem; }
-    label { font-size: 0.85rem; color: var(--text-dim); font-weight: 600; }
-    input {
-      padding: 0.8rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border);
-      border-radius: 10px; color: #fff; outline: none; transition: 0.2s; font-family: inherit;
-    }
-    input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-glow); }
-    
-    .btn {
-      padding: 0.8rem 1.5rem; border-radius: 10px; border: none; font-weight: 600; cursor: pointer;
-      transition: 0.3s; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
-    }
-    .btn-primary { background: linear-gradient(135deg, var(--primary), #8b5cf6); color: #fff; }
-    .btn-primary:hover { box-shadow: 0 4px 15px var(--primary-glow); transform: translateY(-2px); }
-    .btn-upload { background: linear-gradient(135deg, var(--accent), #0ea5e9); color: #fff; width: 100%; margin-top: 1rem; }
-    .btn-upload:hover { box-shadow: 0 4px 15px rgba(6,182,212,0.4); }
-
-    /* Зона загрузки */
-    .upload-zone {
-      border: 2px dashed var(--border); border-radius: 12px; padding: 2rem; text-align: center;
-      transition: 0.3s; cursor: pointer; margin-bottom: 1rem;
-    }
-    .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: rgba(6,182,212,0.05); }
-    #excelInput { display: none; }
-    .progress-bar { height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 1rem; display: none; }
-    .progress-fill { height: 100%; width: 0%; background: var(--success); transition: width 0.3s; }
-
-    /* Таблицы */
-    .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th { background: rgba(0,0,0,0.4); padding: 1rem; text-align: left; color: var(--text-dim); font-weight: 600; border-bottom: 1px solid var(--border); }
-    td { padding: 1rem; border-bottom: 1px solid var(--border); color: var(--text); }
-    tr:hover td { background: rgba(255,255,255,0.02); }
-    
-    .badge { padding: 0.2rem 0.6rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; }
-    .badge-danger { background: rgba(239,68,68,0.2); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
-    .badge-success { background: rgba(16,185,129,0.2); color: #86efac; border: 1px solid rgba(16,185,129,0.3); }
-
-    .hidden { display: none !important; }
-
-    /* Уведомления */
-    .toast {
-      position: fixed; bottom: 20px; right: 20px; padding: 1rem 1.5rem; border-radius: 12px;
-      color: #fff; font-weight: 500; animation: slideUp 0.3s ease; z-index: 1000;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
-    }
-    .toast-success { background: var(--success); }
-    .toast-error { background: var(--danger); }
-    @keyframes slideUp { from{transform:translateY(20px); opacity:0} to{transform:translateY(0); opacity:1} }
+    :root{--bg-dark:#050507;--bg-card:rgba(20,20,35,0.6);--border:rgba(255,255,255,0.08);--primary:#6366f1;--primary-glow:rgba(99,102,241,0.4);--accent:#06b6d4;--text:#f1f5f9;--text-dim:#94a3b8;--danger:#ef4444;--success:#10b981}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Manrope',sans-serif;background:var(--bg-dark);color:var(--text);min-height:100vh;overflow-x:hidden}
+    .bg-glow{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;background:radial-gradient(circle at 15% 50%,rgba(99,102,241,0.15) 0%,transparent 50%),radial-gradient(circle at 85% 30%,rgba(6,182,212,0.1) 0%,transparent 50%);animation:pulse 10s infinite alternate}
+    @keyframes pulse{0%{opacity:0.8}100%{opacity:1}}
+    .container{max-width:1200px;margin:0 auto;padding:2rem}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2.5rem;padding:1.5rem 2rem;background:var(--bg-card);border:1px solid var(--border);border-radius:20px;backdrop-filter:blur(15px)}
+    .brand{display:flex;align-items:center;gap:1rem}
+    .logo{width:50px;height:50px;object-fit:contain;filter:drop-shadow(0 0 8px var(--primary))}
+    h1{font-size:1.5rem;font-weight:700;background:linear-gradient(to right,#fff,#a5b4fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .tabs{display:flex;gap:0.5rem;background:rgba(0,0,0,0.3);padding:0.4rem;border-radius:14px;border:1px solid var(--border)}
+    .tab-btn{padding:0.6rem 1.2rem;border-radius:10px;border:none;background:transparent;color:var(--text-dim);font-weight:500;cursor:pointer;transition:0.3s;display:flex;align-items:center;gap:0.5rem}
+    .tab-btn:hover{color:#fff;background:rgba(255,255,255,0.05)}
+    .tab-btn.active{background:var(--primary);color:#fff;box-shadow:0 0 15px var(--primary-glow)}
+    .card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;margin-bottom:1.5rem;backdrop-filter:blur(10px)}
+    .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;border-bottom:1px solid var(--border);padding-bottom:0.8rem}
+    .card-title{font-size:1.1rem;font-weight:600;display:flex;align-items:center;gap:0.5rem}
+    .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem}
+    .input-group{display:flex;flex-direction:column;gap:0.4rem}
+    label{font-size:0.85rem;color:var(--text-dim);font-weight:600}
+    input{padding:0.8rem;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;color:#fff;outline:none;transition:0.2s}
+    input:focus{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary-glow)}
+    .btn{padding:0.8rem 1.5rem;border-radius:10px;border:none;font-weight:600;cursor:pointer;transition:0.3s;display:inline-flex;align-items:center;justify-content:center;gap:0.5rem}
+    .btn-primary{background:linear-gradient(135deg,var(--primary),#8b5cf6);color:#fff}
+    .btn-primary:hover{box-shadow:0 4px 15px var(--primary-glow);transform:translateY(-2px)}
+    .btn-upload{background:linear-gradient(135deg,var(--accent),#0ea5e9);color:#fff;width:100%;margin-top:1rem}
+    .upload-zone{border:2px dashed var(--border);border-radius:12px;padding:2rem;text-align:center;transition:0.3s;cursor:pointer;margin-bottom:1rem}
+    .upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:rgba(6,182,212,0.05)}
+    #excelInput{display:none}
+    .progress-bar{height:4px;background:rgba(255,255,255,0.1);border-radius:2px;margin-top:1rem;display:none}
+    .progress-fill{height:100%;width:0%;background:var(--success);transition:width 0.3s}
+    .table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
+    table{width:100%;border-collapse:collapse;font-size:0.9rem}
+    th{background:rgba(0,0,0,0.4);padding:1rem;text-align:left;color:var(--text-dim);font-weight:600;border-bottom:1px solid var(--border)}
+    td{padding:1rem;border-bottom:1px solid var(--border);color:var(--text)}
+    tr:hover td{background:rgba(255,255,255,0.02)}
+    .badge{padding:0.2rem 0.6rem;border-radius:8px;font-size:0.75rem;font-weight:700}
+    .badge-danger{background:rgba(239,68,68,0.2);color:#fca5a5;border:1px solid rgba(239,68,68,0.3)}
+    .badge-success{background:rgba(16,185,129,0.2);color:#86efac;border:1px solid rgba(16,185,129,0.3)}
+    .hidden{display:none!important}
+    .toast{position:fixed;bottom:20px;right:20px;padding:1rem 1.5rem;border-radius:12px;color:#fff;font-weight:500;animation:slideUp 0.3s ease;z-index:1000}
+    .toast-success{background:var(--success)}
+    .toast-error{background:var(--danger)}
+    @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
   </style>
 </head>
 <body>
   <div class="bg-glow"></div>
-
   <div class="container">
-    <!-- Header -->
     <header>
       <div class="brand">
         <img src="/static/logo.png" alt="Logo" class="logo">
-        <div>
-          <h1>Агент контроля штрафов</h1>
-          <span style="font-size: 0.8rem; color: var(--text-dim);">AI Monitoring System v2.0</span>
-        </div>
+        <div><h1>Агент контроля штрафов</h1><span style="font-size:0.8rem;color:var(--text-dim)">AI Monitoring System</span></div>
       </div>
       <nav class="tabs">
-        <button class="tab-btn active" onclick="switchTab('fines', this)"><i data-lucide="alert-circle"></i> Штрафы</button>
-        <button class="tab-btn" onclick="switchTab('vehicles', this)"><i data-lucide="car"></i> Транспорт</button>
-        <button class="tab-btn" onclick="switchTab('history', this)"><i data-lucide="clock"></i> История</button>
+        <button class="tab-btn active" onclick="switchTab('fines',this)"><i data-lucide="alert-circle"></i> Штрафы</button>
+        <button class="tab-btn" onclick="switchTab('vehicles',this)"><i data-lucide="car"></i> Транспорт</button>
+        <button class="tab-btn" onclick="switchTab('history',this)"><i data-lucide="clock"></i> История</button>
       </nav>
     </header>
 
-    <!-- 1. Вкладка ШТРАФЫ -->
+    <!-- ШТРАФЫ -->
     <section id="tab-fines" class="tab-content">
       {% if fines_unpaid %}
       <div class="card">
-        <div class="card-header">
-          <div class="card-title"><i data-lucide="alert-triangle" style="color:var(--danger)"></i> Неоплаченные штрафы</div>
-          <span class="badge badge-danger">{{ fines_unpaid|length }} активных</span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Дата</th><th>Авто</th><th>Сумма</th><th>Действия</th></tr></thead>
-            <tbody>
-              {% for f in fines_unpaid %}
-              <tr>
-                <td>{{ f[0] }}</td>
-                <td style="font-weight:600">{{ f[5] }}</td>
-                <td style="color:var(--danger)"><b>{{ f[1] }} ₽</b></td>
-                <td>
-                  <a href="/pay/{{ f[3] }}" class="btn btn-primary" style="padding:0.4rem 0.8rem; font-size:0.8rem">💳 Оплатить</a>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+        <div class="card-header"><div class="card-title"><i data-lucide="alert-triangle" style="color:var(--danger)"></i> Неоплаченные</div><span class="badge badge-danger">{{ fines_unpaid|length }}</span></div>
+        <div class="table-wrap"><table><thead><tr><th>Дата</th><th>Авто</th><th>Сумма</th><th>Действия</th></tr></thead><tbody>
+          {% for f in fines_unpaid %}
+          <tr><td>{{ f[0] }}</td><td style="font-weight:600">{{ f[5] }}</td><td style="color:var(--danger)"><b>{{ f[1] }} ₽</b></td><td><a href="/pay/{{ f[3] }}" class="btn btn-primary" style="padding:0.4rem 0.8rem;font-size:0.8rem">💳 Оплатить</a></td></tr>
+          {% endfor %}
+        </tbody></table></div>
       </div>
       {% else %}
-      <div class="card" style="text-align:center; padding:3rem;">
-        <i data-lucide="check-circle" style="width:48px; height:48px; color:var(--success); margin-bottom:1rem;"></i>
-        <h3>Штрафов нет</h3>
-        <p style="color:var(--text-dim)">Система не обнаружила задолженностей.</p>
-      </div>
+      <div class="card" style="text-align:center;padding:3rem"><i data-lucide="check-circle" style="width:48px;height:48px;color:var(--success);margin-bottom:1rem"></i><h3>Штрафов нет</h3><p style="color:var(--text-dim)">Система не обнаружила задолженностей.</p></div>
       {% endif %}
     </section>
 
-    <!-- 2. Вкладка ТРАНСПОРТ -->
+    <!-- ТРАНСПОРТ -->
     <section id="tab-vehicles" class="tab-content hidden">
-      <!-- Ручной ввод -->
       <div class="card">
-        <div class="card-header">
-          <div class="card-title"><i data-lucide="plus-circle"></i> Добавить автомобиль</div>
-        </div>
-        <form id="addCarForm">
-          <div class="form-grid">
-            <div class="input-group">
-              <label>Гос. номер *</label>
-              <input type="text" name="plate" placeholder="А000АА777" required>
-            </div>
-            <div class="input-group">
-              <label>СТС</label>
-              <input type="text" name="sts" placeholder="1234567890">
-            </div>
-            <div class="input-group">
-              <label>Марка *</label>
-              <input type="text" name="brand" placeholder="Ford Transit" required>
-            </div>
-          </div>
-          <button type="submit" class="btn btn-primary" style="margin-top:1rem"><i data-lucide="save"></i> Сохранить</button>
-        </form>
+        <div class="card-header"><div class="card-title"><i data-lucide="plus-circle"></i> Добавить автомобиль</div></div>
+        <form id="addCarForm"><div class="form-grid">
+          <div class="input-group"><label>Гос. номер *</label><input type="text" name="plate" placeholder="А000АА777" required></div>
+          <div class="input-group"><label>СТС</label><input type="text" name="sts" placeholder="1234567890"></div>
+          <div class="input-group"><label>Марка *</label><input type="text" name="brand" placeholder="Ford Transit" required></div>
+        </div><button type="submit" class="btn btn-primary" style="margin-top:1rem"><i data-lucide="save"></i> Сохранить</button></form>
       </div>
-
-      <!-- Импорт Excel -->
       <div class="card">
-        <div class="card-header">
-          <div class="card-title"><i data-lucide="upload-cloud"></i> Массовая загрузка (Excel)</div>
-        </div>
+        <div class="card-header"><div class="card-title"><i data-lucide="upload-cloud"></i> Импорт Excel</div></div>
         <div class="upload-zone" id="dropZone">
-          <i data-lucide="file-spreadsheet" style="width:40px; height:40px; color:var(--accent); margin-bottom:0.5rem;"></i>
-          <p style="margin-bottom:0.5rem">Перетащите файл сюда или нажмите кнопку</p>
-          <p style="font-size:0.75rem; color:var(--text-dim); margin-bottom:1rem">Поддерживаются колонки: <b>номер</b>, <b>СТС</b>, <b>марка</b></p>
-          
+          <i data-lucide="file-spreadsheet" style="width:40px;height:40px;color:var(--accent);margin-bottom:0.5rem"></i>
+          <p style="margin-bottom:0.5rem">Перетащите файл или нажмите кнопку</p>
+          <p style="font-size:0.75rem;color:var(--text-dim);margin-bottom:1rem">Колонки: <b>номер</b>, <b>СТС</b>, <b>марка</b></p>
           <input type="file" id="excelInput" accept=".xlsx,.xls">
-          <button class="btn btn-upload" onclick="document.getElementById('excelInput').click()">
-            <i data-lucide="folder-open"></i> Выбрать файл
-          </button>
+          <button class="btn btn-upload" onclick="document.getElementById('excelInput').click()"><i data-lucide="folder-open"></i> Выбрать файл</button>
           <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
         </div>
       </div>
-
-      <!-- Список авто -->
       <div class="card">
-        <div class="card-header">
-          <div class="card-title"><i data-lucide="list"></i> База автомобилей</div>
-          <span class="badge badge-success">{{ vehicles|length }} записей</span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Номер</th><th>СТС</th><th>Марка</th><th>Добавлен</th></tr></thead>
-            <tbody>
-              {% for v in vehicles %}
-              <tr>
-                <td style="font-weight:600">{{ v.plate_number }}</td>
-                <td>{{ v.sts_number }}</td>
-                <td>{{ v.brand }}</td>
-                <td style="color:var(--text-dim); font-size:0.8rem">{{ v.created_at[:10] }}</td>
-              </tr>
-              {% else %}
-              <tr><td colspan="4" style="text-align:center; padding:2rem">Список пуст</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+        <div class="card-header"><div class="card-title"><i data-lucide="list"></i> База автомобилей</div><span class="badge badge-success">{{ vehicles|length }}</span></div>
+        <div class="table-wrap"><table><thead><tr><th>Номер</th><th>СТС</th><th>Марка</th><th>Добавлен</th></tr></thead><tbody>
+          {% for v in vehicles %}
+          <tr><td style="font-weight:600">{{ v.plate_number }}</td><td>{{ v.sts_number }}</td><td>{{ v.brand }}</td><td style="color:var(--text-dim);font-size:0.8rem">{{ v.created_at[:10] }}</td></tr>
+          {% else %}
+          <tr><td colspan="4" style="text-align:center;padding:2rem">Список пуст</td></tr>
+          {% endfor %}
+        </tbody></table></div>
       </div>
     </section>
 
-    <!-- 3. Вкладка ИСТОРИЯ -->
+    <!-- ИСТОРИЯ -->
     <section id="tab-history" class="tab-content hidden">
       <div class="card">
-        <div class="card-header">
-          <div class="card-title"><i data-lucide="history"></i> История операций</div>
-        </div>
+        <div class="card-header"><div class="card-title"><i data-lucide="history"></i> История операций</div></div>
         {% if all_fines %}
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Дата</th><th>Авто</th><th>Сумма</th><th>Статус</th></tr></thead>
-            <tbody>
-              {% for f in all_fines %}
-              <tr>
-                <td>{{ f.fine_date }}</td>
-                <td>{{ f.car_number }}</td>
-                <td>{{ f.fine_sum }} ₽</td>
-                <td><span class="badge {% if f.is_paid %}badge-success{% else %}badge-danger{% endif %}">{{ f.is_paid|yesno("Оплачен, Не оплачен") }}</span></td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+        <div class="table-wrap"><table><thead><tr><th>Дата</th><th>Авто</th><th>Сумма</th><th>Статус</th></tr></thead><tbody>
+          {% for f in all_fines %}
+          <tr><td>{{ f.fine_date }}</td><td>{{ f.car_number }}</td><td>{{ f.fine_sum }} ₽</td>
+            <td><span class="badge {% if f.is_paid %}badge-success{% else %}badge-danger{% endif %}">{% if f.is_paid %}Оплачен{% else %}Не оплачен{% endif %}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody></table></div>
         {% else %}
-        <p style="text-align:center; color:var(--text-dim)">История пуста</p>
+        <p style="text-align:center;color:var(--text-dim)">История пуста</p>
         {% endif %}
       </div>
     </section>
   </div>
 
-  <!-- JS Logic -->
   <script>
     lucide.createIcons();
-
-    // Переключение вкладок
-    function switchTab(tabName, btn) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-      document.getElementById('tab-' + tabName).classList.remove('hidden');
-      btn.classList.add('active');
-      lucide.createIcons();
-    }
-
-    // Уведомления
-    function showToast(msg, type = 'success') {
-      const t = document.createElement('div');
-      t.className = `toast toast-${type}`;
-      t.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}" style="width:18px; height:18px; vertical-align:middle; margin-right:8px;"></i> ${msg}`;
-      document.body.appendChild(t);
-      lucide.createIcons();
-      setTimeout(() => t.remove(), 4000);
-    }
-
-    // 1. Ручная форма
-    document.getElementById('addCarForm').addEventListener('submit', async e => {
-      e.preventDefault();
-      const data = Object.fromEntries(new FormData(e.target));
-      try {
-        const res = await fetch('/api/vehicles', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
-        if(!res.ok) throw new Error((await res.json()).error);
-        showToast('Автомобиль успешно добавлен');
-        setTimeout(() => location.reload(), 1500);
-      } catch(err) { showToast(err.message, 'error'); }
-    });
-
-    // 2. Загрузка Excel
-    const dropZone = document.getElementById('dropZone');
-    const excelInput = document.getElementById('excelInput');
-    const progressBar = document.getElementById('progressBar');
-    const progressFill = document.getElementById('progressFill');
-
-    ['dragenter', 'dragover'].forEach(e => dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.add('dragover'); }));
-    ['dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.remove('dragover'); }));
-    
-    dropZone.addEventListener('drop', ev => {
-      if(ev.dataTransfer.files.length) processFile(ev.dataTransfer.files[0]);
-    });
-    
-    excelInput.addEventListener('change', ev => {
-      if(ev.target.files.length) processFile(ev.target.files[0]);
-    });
-
-    async function processFile(file) {
-      progressBar.style.display = 'block';
-      progressFill.style.width = '20%';
-      
-      try {
-        const data = await file.arrayBuffer();
-        progressFill.style.width = '50%';
-        
-        const wb = XLSX.read(data, {type:'array'});
-        const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-        
-        // Маппинг колонок под ваш файл
-        const vehicles = json.map(row => {
-          let plate = '', sts = '', brand = '';
-          
-          Object.keys(row).forEach(key => {
-            const k = key.toLowerCase().trim();
-            if(k.includes('номер') || k.includes('plate') || k.includes('гос')) plate = row[key];
-            if(k.includes('стс') || k.includes('sts')) sts = row[key];
-            if(k.includes('марка') || k.includes('brand') || k.includes('model')) brand = row[key];
-          });
-
-          // ИСПРАВЛЕНИЕ: Если СТС пустой или 0, ставим заглушку, чтобы не было ошибки
-          if(!sts || sts == '0' || sts === ' ') sts = '0000000000';
-
-          return { plate: String(plate).trim().toUpperCase(), sts: String(sts).trim(), brand: String(brand).trim() };
-        }).filter(v => v.plate && v.brand); // Требуем только Номер и Марку
-
-        if(!vehicles.length) throw new Error("Не найдено валидных строк. Проверьте заголовки колонок!");
-
-        progressFill.style.width = '80%';
-
-        const res = await fetch('/api/vehicles/bulk', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({vehicles})
-        });
-
-        progressFill.style.width = '100%';
-        if(!res.ok) throw new Error((await res.json()).error || 'Ошибка сервера');
-
-        const result = await res.json();
-        showToast(`Успешно загружено: ${result.count || vehicles.length} авто`);
-        setTimeout(() => location.reload(), 1500);
-
-      } catch(err) {
-        showToast(err.message, 'error');
-        console.error(err);
-        progressBar.style.display = 'none';
-      }
-    }
+    function switchTab(tab,btn){document.querySelectorAll('.tab-content').forEach(e=>e.classList.add('hidden'));document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+tab).classList.remove('hidden');btn.classList.add('active');lucide.createIcons()}
+    function showToast(msg,type='success'){const t=document.createElement('div');t.className=`toast toast-${type}`;t.innerHTML=`<i data-lucide="${type==='success'?'check-circle':'alert-circle'}" style="width:18px;height:18px;vertical-align:middle;margin-right:8px"></i> ${msg}`;document.body.appendChild(t);lucide.createIcons();setTimeout(()=>t.remove(),4000)}
+    document.getElementById('addCarForm')?.addEventListener('submit',async e=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.target));try{const res=await fetch('/api/vehicles',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(!res.ok)throw new Error((await res.json()).error);showToast('Автомобиль добавлен');setTimeout(()=>location.reload(),1500)}catch(err){showToast(err.message,'error')}})
+    const dropZone=document.getElementById('dropZone'),excelInput=document.getElementById('excelInput'),progressBar=document.getElementById('progressBar'),progressFill=document.getElementById('progressFill');
+    ['dragenter','dragover'].forEach(e=>dropZone.addEventListener(e,ev=>{ev.preventDefault();dropZone.classList.add('dragover')}));['dragleave','drop'].forEach(e=>dropZone.addEventListener(e,ev=>{ev.preventDefault();dropZone.classList.remove('dragover')}));
+    dropZone.addEventListener('drop',ev=>{if(ev.dataTransfer.files.length)processFile(ev.dataTransfer.files[0])});excelInput.addEventListener('change',ev=>{if(ev.target.files.length)processFile(ev.target.files[0])});
+    async function processFile(file){progressBar.style.display='block';progressFill.style.width='20%';try{const data=await file.arrayBuffer();progressFill.style.width='50%';const wb=XLSX.read(data,{type:'array'});const json=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);const vehicles=json.map(row=>{let p='',s='',b='';Object.keys(row).forEach(k=>{const key=k.toLowerCase().trim();if(key.includes('номер')||key.includes('plate')||key.includes('гос'))p=row[k];if(key.includes('стс')||key.includes('sts'))s=row[k];if(key.includes('марка')||key.includes('brand')||key.includes('model'))b=row[k]});if(!s||s=='0'||s===' ')s='0000000000';return{plate:String(p).trim().toUpperCase(),sts:String(s).trim(),brand:String(b).trim()}}).filter(v=>v.plate&&v.brand);if(!vehicles.length)throw new Error('Не найдено валидных строк');progressFill.style.width='80%';const res=await fetch('/api/vehicles/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vehicles})});progressFill.style.width='100%';if(!res.ok)throw new Error((await res.json()).error||'Ошибка');const result=await res.json();showToast(`Загружено: ${result.count||vehicles.length} авто`);setTimeout(()=>location.reload(),1500)}catch(err){showToast(err.message,'error');console.error(err);progressBar.style.display='none'}}
   </script>
 </body>
 </html>
