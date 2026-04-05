@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Агент контроля штрафов | AI System</title>
+  
+  <!-- Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+  
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-glow: rgba(99, 102, 241, 0.4);
+      --secondary: #8b5cf6;
+      --accent: #06b6d4;
+      --bg-dark: #0a0a0f;
+      --bg-card: rgba(20, 20, 35, 0.6);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #f1f5f9;
+      --text-dim: #94a3b8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --gradient-1: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      --gradient-2: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Animated Background */
+    .bg-animation {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      background: 
+        radial-gradient(ellipse at 20% 80%, rgba(99,102,241,0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(139,92,246,0.12) 0%, transparent 50%),
+        radial-gradient(ellipse at 40% 40%, rgba(6,182,212,0.08) 0%, transparent 40%);
+      animation: bgPulse 15s ease-in-out infinite;
+    }
+
+    @keyframes bgPulse {
+      0%, 100% { opacity: 0.8; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.05); }
+    }
+
+    /* Particles */
+    .particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.4;
+    }
+
+    .particle {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: var(--primary);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--primary);
+      animation: float 20s infinite linear;
+    }
+
+    @keyframes float {
+      from { transform: translateY(100vh) translateX(0); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      to { transform: translateY(-100vh) translateX(100px); opacity: 0; }
+    }
+
+    /* Layout */
+    .container {
+      position: relative;
+      z-index: 2;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 3rem;
+      padding: 1.5rem 2rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .logo-section {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .logo {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      object-fit: cover;
+      border: 2px solid var(--primary);
+      box-shadow: 0 0 20px var(--primary-glow);
+    }
+
+    .title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 0.875rem;
+      color: var(--text-dim);
+    }
+
+    /* Navigation */
+    .nav-tabs {
+      display: flex;
+      gap: 0.75rem;
+      background: rgba(15, 15, 25, 0.6);
+      padding: 0.5rem;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .nav-tab {
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-dim);
+      border: none;
+      background: transparent;
+    }
+
+    .nav-tab:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-tab.active {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 4px 15px var(--primary-glow);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+      backdrop-filter: blur(20px);
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .badge-danger {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .badge-success {
+      background: rgba(16, 185, 129, 0.2);
+      color: #86efac;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    .btn-primary {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 4px 15px var(--primary-glow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px var(--primary-glow);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-upload {
+      background: var(--gradient-2);
+      color: white;
+      box-shadow: 0 4px 15px rgba(6, 182, 212, 0.4);
+    }
+
+    .btn-upload:hover {
+      box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    thead {
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    th {
+      padding: 1rem;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text);
+      border-bottom: 2px solid var(--border);
+    }
+
+    td {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+
+    tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Forms */
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      background: rgba(15, 15, 25, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    /* Upload Zone */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      padding: 3rem 2rem;
+      text-align: center;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      background: rgba(15, 15, 25, 0.3);
+    }
+
+    .upload-zone:hover {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.05);
+    }
+
+    .upload-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(6, 182, 212, 0.1);
+      transform: scale(1.02);
+    }
+
+    .upload-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 1rem;
+      color: var(--primary);
+    }
+
+    /* Alerts */
+    .alert {
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .alert-warning {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fcd34d;
+    }
+
+    .alert-success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #86efac;
+    }
+
+    /* Progress */
+    .progress-bar {
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--gradient-1);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container { padding: 1rem; }
+      .header { flex-direction: column; gap: 1rem; }
+      .nav-tabs { flex-wrap: wrap; }
+      .card { padding: 1.5rem; }
+      table { font-size: 0.875rem; }
+      th, td { padding: 0.75rem; }
+    }
+
+    /* Utility */
+    .hidden { display: none !important; }
+    .text-gradient {
+      background: linear-gradient(135deg, #6366f1, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .mt-4 { margin-top: 2rem; }
+    .mb-4 { margin-bottom: 2rem; }
+  </style>
+</head>
+<body>
+  <div class="bg-animation"></div>
+  <div class="particles" id="particles"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo-section">
+        <img src="/static/logo.png" alt="Logo" class="logo">
+        <div>
+          <h1 class="title">Агент контроля штрафов</h1>
+          <p class="subtitle">AI-powered system</p>
+        </div>
+      </div>
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-tab="fines">
+          <i data-lucide="alert-circle"></i> Штрафы
+        </button>
+        <button class="nav-tab" data-tab="vehicles">
+          <i data-lucide="car"></i> Транспорт
+        </button>
+        <button class="nav-tab" data-tab="history">
+          <i data-lucide="history"></i> История
+        </button>
+      </nav>
+    </header>
+
+    <!-- Fines Section -->
+    <section id="fines-section" class="tab-content">
+      {% if fines_unpaid or fines_paid %}
+        {% if fines_unpaid %}
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">
+              <i data-lucide="alert-triangle" style="color: var(--danger)"></i>
+              Неоплаченные штрафы
+            </h2>
+            <span class="badge badge-danger">{{ fines_unpaid|length }}</span>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Дата</th>
+                  <th>Авто</th>
+                  <th>Описание</th>
+                  <th>Сумма</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for f in fines_unpaid %}
+                <tr>
+                  <td>{{ f[0] }}</td>
+                  <td>{{ f[5] }}</td>
+                  <td>{{ f[2] or '—' }}</td>
+                  <td style="color: var(--danger); font-weight: 600">{{ f[1] }} ₽</td>
+                  <td>
+                    {% if f[4] %}
+                    <a href="{{ f[4] }}" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem">
+                      <i data-lucide="file-text"></i> Постановление
+                    </a>
+                    {% endif %}
+                    <a href="/pay/{{ f[3] }}" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem">
+                      <i data-lucide="credit-card"></i> Оплатить
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if fines_paid %}
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">
+              <i data-lucide="check-circle" style="color: var(--success)"></i>
+              Оплаченные штрафы
+            </h2>
+            <span class="badge badge-success">{{ fines_paid|length }}</span>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Дата</th>
+                  <th>Авто</th>
+                  <th>Описание</th>
+                  <th>Сумма</th>
+                  <th>Статус</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for f in fines_paid %}
+                <tr>
+                  <td>{{ f.fine_date }}</td>
+                  <td>{{ f.car_number }}</td>
+                  <td>{{ f.description or '—' }}</td>
+                  <td>{{ f.fine_sum }} ₽</td>
+                  <td><span style="color: var(--success)">✓ Оплачен</span></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
+      {% else %}
+        <div class="alert alert-success">
+          <i data-lucide="check-circle"></i>
+          Нет штрафов. Все чисто!
+        </div>
+      {% endif %}
+    </section>
+
+    <!-- Vehicles Section -->
+    <section id="vehicles-section" class="tab-content hidden">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <i data-lucide="plus-circle"></i>
+            Добавить автомобиль
+          </h2>
+        </div>
+        <form id="addVehicleForm">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem">
+            <div class="form-group">
+              <label><i data-lucide="hash"></i> Гос. номер</label>
+              <input type="text" name="plate" placeholder="А000АА777" required>
+            </div>
+            <div class="form-group">
+              <label><i data-lucide="file-text"></i> СТС</label>
+              <input type="text" name="sts" placeholder="77АА123456" required>
+            </div>
+            <div class="form-group">
+              <label><i data-lucide="mail"></i> Email</label>
+              <input type="email" name="email" placeholder="email@example.com" required>
+            </div>
+            <div class="form-group">
+              <label><i data-lucide="tag"></i> Описание</label>
+              <input type="text" name="description" placeholder="Toyota Camry">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i data-lucide="save"></i> Добавить
+          </button>
+        </form>
+
+        <!-- Excel Upload -->
+        <div class="mt-4">
+          <h3 style="margin-bottom: 1rem; font-size: 1.1rem">
+            <i data-lucide="upload-cloud" style="vertical-align: -2px"></i>
+            Массовая загрузка из Excel
+          </h3>
+          <div class="upload-zone" id="uploadZone">
+            <i data-lucide="upload" class="upload-icon"></i>
+            <h3>Перетащите Excel-файл сюда</h3>
+            <p style="color: var(--text-dim); margin: 0.5rem 0 1rem">или нажмите для выбора файла</p>
+            <input type="file" id="excelInput" accept=".xlsx,.xls" style="display: none">
+            <button class="btn btn-upload" onclick="document.getElementById('excelInput').click()">
+              <i data-lucide="folder-open"></i> Выбрать файл
+            </button>
+            <div class="progress-bar" id="progressBar">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-dim)">
+              Формат: колонки <strong>plate</strong>, <strong>sts</strong>, <strong>email</strong>, <strong>description</strong>
+            </p>
+          </div>
+          <button class="btn btn-secondary mt-4" onclick="downloadTemplate()">
+            <i data-lucide="download"></i> Скачать шаблон Excel
+          </button>
+        </div>
+      </div>
+
+      {% if vehicles %}
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <i data-lucide="car"></i>
+            Ваши автомобили
+          </h2>
+          <span class="badge badge-success">{{ vehicles|length }}</span>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Авто</th>
+                <th>СТС</th>
+                <th>Email</th>
+                <th>Описание</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for v in vehicles %}
+              <tr>
+                <td style="font-weight: 600; color: var(--text)">{{ v[1] }}</td>
+                <td>{{ v[2] }}</td>
+                <td>{{ v[3] }}</td>
+                <td>{{ v[5] or '—' }}</td>
+                <td>
+                  <a href="/edit/{{ v[0] }}" class="btn btn-secondary" style="padding: 0.5rem; font-size: 0.875rem">
+                    <i data-lucide="edit-2"></i>
+                  </a>
+                  <a href="/history/{{ v[0] }}" class="btn btn-secondary" style="padding: 0.5rem; font-size: 0.875rem">
+                    <i data-lucide="history"></i>
+                  </a>
+                  <a href="/delete/{{ v[0] }}" class="btn btn-secondary" style="padding: 0.5rem; font-size: 0.875rem; color: var(--danger)">
+                    <i data-lucide="trash-2"></i>
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+    </section>
+
+    <!-- History Section -->
+    <section id="history-section" class="tab-content hidden">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <i data-lucide="scroll"></i>
+            История штрафов
+          </h2>
+        </div>
+        {% if all_fines %}
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Дата штрафа</th>
+                <th>Авто</th>
+                <th>Сумма</th>
+                <th>Статус</th>
+                <th>Обнаружен</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for f in all_fines %}
+              <tr>
+                <td>{{ f.fine_date }}</td>
+                <td>{{ f.car_number }}</td>
+                <td>{{ f.fine_sum }} ₽</td>
+                <td>
+                  {% if f.is_paid %}
+                  <span style="color: var(--success)">✓ Оплачен</span>
+                  {% else %}
+                  <span style="color: var(--warning)">⏳ Не оплачен</span>
+                  {% endif %}
+                </td>
+                <td>{{ f.detected_at[:16].replace('T', ' ') }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="alert alert-success">
+          <i data-lucide="info"></i>
+          Нет данных
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- Manual Check Alert -->
+    {% if "manual" in request.query_params %}
+    <div class="alert alert-success">
+      <i data-lucide="check-circle"></i>
+      Проверка запущена. Новые штрафы придут на email.
+    </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <footer style="text-align: center; padding: 2rem; color: var(--text-dim); border-top: 1px solid var(--border); margin-top: 3rem">
+      <p>© 2025 Агент проверки штрафов. Все права защищены.</p>
+    </footer>
+  </div>
+
+  <!-- Supabase Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    // Create particles
+    function createParticles() {
+      const container = document.getElementById('particles');
+      for (let i = 0; i < 50; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 20 + 's';
+        particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+        container.appendChild(particle);
+      }
+    }
+    createParticles();
+
+    // Tab navigation
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        
+        tab.classList.add('active');
+        const tabId = tab.dataset.tab + '-section';
+        document.getElementById(tabId).classList.remove('hidden');
+        lucide.createIcons();
+      });
+    });
+
+    // Excel Upload
+    const uploadZone = document.getElementById('uploadZone');
+    const excelInput = document.getElementById('excelInput');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+
+    uploadZone.addEventListener('click', () => excelInput.click());
+    
+    uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadZone.classList.add('dragover');
+    });
+
+    uploadZone.addEventListener('dragleave', () => {
+      uploadZone.classList.remove('dragover');
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files.length) handleExcel(files[0]);
+    });
+
+    excelInput.addEventListener('change', (e) => {
+      if (e.target.files.length) handleExcel(e.target.files[0]);
+    });
+
+    async function handleExcel(file) {
+      try {
+        progressBar.style.display = 'block';
+        progressFill.style.width = '20%';
+
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+        progressFill.style.width = '50%';
+
+        // Normalize data
+        const vehicles = rows.map(row => {
+          const obj = {};
+          Object.keys(row).forEach(key => {
+            obj[key.toLowerCase().trim()] = row[key];
+          });
+          return {
+            plate: (obj.plate || obj['гос. номер'] || obj['номер'] || '').toString().trim().toUpperCase(),
+            sts: (obj.sts || obj['стс'] || '').toString().trim().toUpperCase(),
+            email: (obj.email || obj['email'] || '').toString().trim(),
+            description: (obj.description || obj['описание'] || obj['марка'] || '').toString().trim()
+          };
+        }).filter(v => v.plate && v.sts && v.email);
+
+        if (vehicles.length === 0) {
+          throw new Error('Не найдено валидных записей. Проверьте колонки: plate, sts, email');
+        }
+
+        progressFill.style.width = '80%';
+
+        // Send to server (adjust endpoint as needed)
+        const response = await fetch('/api/vehicles/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vehicles })
+        });
+
+        progressFill.style.width = '100%';
+
+        if (response.ok) {
+          showAlert(`✅ Успешно добавлено ${vehicles.length} автомобилей`, 'success');
+          setTimeout(() => location.reload(), 1500);
+        } else {
+          throw new Error('Ошибка при сохранении данных');
+        }
+
+      } catch (error) {
+        showAlert('❌ Ошибка: ' + error.message, 'warning');
+        progressBar.style.display = 'none';
+      }
+    }
+
+    function downloadTemplate() {
+      const ws = XLSX.utils.json_to_sheet([
+        { plate: 'А000АА777', sts: '77АА123456', email: 'user@example.com', description: 'Toyota Camry' },
+        { plate: 'В123ВВ99', sts: '99ВВ654321', email: 'user2@example.com', description: 'Kia Rio' }
+      ]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Шаблон');
+      XLSX.writeFile(wb, 'template_vehicles.xlsx');
+    }
+
+    function showAlert(message, type) {
+      const alert = document.createElement('div');
+      alert.className = `alert alert-${type}`;
+      alert.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}"></i> ${message}`;
+      document.querySelector('.container').insertBefore(alert, document.querySelector('.container').firstChild);
+      lucide.createIcons();
+      setTimeout(() => alert.remove(), 5000);
+    }
+
+    // Form submission
+    document.getElementById('addVehicleForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = Object.fromEntries(formData);
+
+      try {
+        const response = await fetch('/api/vehicles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          showAlert('✅ Автомобиль успешно добавлен', 'success');
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          throw new Error('Ошибка при добавлении');
+        }
+      } catch (error) {
+        showAlert('❌ ' + error.message, 'warning');
+      }
+    });
+  </script>
+</body>
+</html>
