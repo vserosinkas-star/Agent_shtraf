@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Агент контроля штрафов | AI System</title>
   
-  <!-- Шрифты и Иконки -->
+  <!-- Шрифты и иконки -->
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Библиотека для работы с Excel -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
   
   <style>
@@ -32,9 +33,10 @@
       color: var(--text);
       min-height: 100vh;
       overflow-x: hidden;
+      padding-bottom: 2rem;
     }
 
-    /* Фон с эффектами */
+    /* Анимированный фон */
     .bg-glow {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
       background: 
@@ -129,8 +131,8 @@
       color: #fff; font-weight: 500; animation: slideUp 0.3s ease; z-index: 1000;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
     }
-    .toast-success { background: #10b981; }
-    .toast-error { background: #ef4444; }
+    .toast-success { background: var(--success); }
+    .toast-error { background: var(--danger); }
     @keyframes slideUp { from{transform:translateY(20px); opacity:0} to{transform:translateY(0); opacity:1} }
   </style>
 </head>
@@ -141,7 +143,6 @@
     <!-- Header -->
     <header>
       <div class="brand">
-        <!-- Логотип -->
         <img src="/static/logo.png" alt="Logo" class="logo">
         <div>
           <h1>Агент контроля штрафов</h1>
@@ -155,7 +156,7 @@
       </nav>
     </header>
 
-    <!-- 1. ШТРАФЫ -->
+    <!-- 1. Вкладка ШТРАФЫ -->
     <section id="tab-fines" class="tab-content">
       {% if fines_unpaid %}
       <div class="card">
@@ -190,7 +191,7 @@
       {% endif %}
     </section>
 
-    <!-- 2. ТРАНСПОРТ -->
+    <!-- 2. Вкладка ТРАНСПОРТ -->
     <section id="tab-vehicles" class="tab-content hidden">
       <!-- Ручной ввод -->
       <div class="card">
@@ -246,7 +247,6 @@
             <tbody>
               {% for v in vehicles %}
               <tr>
-                <!-- Используем ключи словаря Supabase -->
                 <td style="font-weight:600">{{ v.plate_number }}</td>
                 <td>{{ v.sts_number }}</td>
                 <td>{{ v.brand }}</td>
@@ -261,7 +261,7 @@
       </div>
     </section>
 
-    <!-- 3. ИСТОРИЯ -->
+    <!-- 3. Вкладка ИСТОРИЯ -->
     <section id="tab-history" class="tab-content hidden">
       <div class="card">
         <div class="card-header">
@@ -294,6 +294,7 @@
   <script>
     lucide.createIcons();
 
+    // Переключение вкладок
     function switchTab(tabName, btn) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -302,6 +303,7 @@
       lucide.createIcons();
     }
 
+    // Уведомления
     function showToast(msg, type = 'success') {
       const t = document.createElement('div');
       t.className = `toast toast-${type}`;
@@ -329,7 +331,6 @@
     const progressBar = document.getElementById('progressBar');
     const progressFill = document.getElementById('progressFill');
 
-    // Drag & Drop эффекты
     ['dragenter', 'dragover'].forEach(e => dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.add('dragover'); }));
     ['dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.remove('dragover'); }));
     
@@ -352,20 +353,19 @@
         const wb = XLSX.read(data, {type:'array'});
         const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
         
-        // Маппинг колонок под ваш файл (номер, СТС, марка)
+        // Маппинг колонок под ваш файл
         const vehicles = json.map(row => {
-          let plate = '', sts = '0000000000', brand = '';
+          let plate = '', sts = '', brand = '';
           
           Object.keys(row).forEach(key => {
             const k = key.toLowerCase().trim();
-            // Ищем нужные колонки по ключевым словам
             if(k.includes('номер') || k.includes('plate') || k.includes('гос')) plate = row[key];
             if(k.includes('стс') || k.includes('sts')) sts = row[key];
             if(k.includes('марка') || k.includes('brand') || k.includes('model')) brand = row[key];
           });
 
-          // Если СТС пустой или 0, ставим заглушку, чтобы не было ошибки в БД
-          if(!sts || sts === '0' || sts === ' ') sts = '0000000000';
+          // ИСПРАВЛЕНИЕ: Если СТС пустой или 0, ставим заглушку, чтобы не было ошибки
+          if(!sts || sts == '0' || sts === ' ') sts = '0000000000';
 
           return { plate: String(plate).trim().toUpperCase(), sts: String(sts).trim(), brand: String(brand).trim() };
         }).filter(v => v.plate && v.brand); // Требуем только Номер и Марку
